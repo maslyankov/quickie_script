@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Determine if we need sudo or running as root
+if [ "$EUID" -eq 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # Default username
 username="admin"
 
@@ -25,19 +32,19 @@ while getopts "u:h" option; do
 done
 
 # Create user and set password
-useradd -m $username
+$SUDO useradd -m "$username"
 
 # Ask for password
 echo "Please enter the password for new user:"
-passwd $username
+$SUDO passwd "$username"
 
 # Add user to sudo group
-usermod -aG sudo $username
+$SUDO usermod -aG sudo "$username"
 
 # Change user shell to bash
-chsh -s /bin/bash $username
+$SUDO chsh -s /bin/bash "$username"
 
-echo "User $username created."
+echo "User $username created successfully!"
 
 # Ask if user wants to continue as the new user
 read -p "Continue as newly created user? (Y/n) " continue_as_new
@@ -45,7 +52,5 @@ continue_as_new=${continue_as_new:-Y}  # Default to Y if empty
 
 if [[ "$continue_as_new" =~ ^[Yy]$ ]]; then
     echo "Switching to user $username and opening script menu..."
-    # Get the directory where this script is located
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    exec su - $username -c "bash $SCRIPT_DIR/quick_setup.sh"
+    $SUDO su - "$username" -c 'bash <(curl -s -L https://github.com/maslyankov/quickie_script/raw/refs/heads/main/quick_setup.sh)'
 fi

@@ -6,6 +6,13 @@ VERSION="1.0.0"
 # Refresh interval for live stats (in seconds)
 REFRESH_INTERVAL=5
 
+# Determine if we need sudo or running as root
+if [ "$EUID" -eq 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # Colors for better visibility
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -138,21 +145,21 @@ function setup_netbird {
         
         # Install dependencies
         echo "Installing dependencies..."
-        sudo apt update
-        sudo apt install -y ca-certificates curl gnupg
+        $SUDO apt update
+        $SUDO apt install -y ca-certificates curl gnupg
 
         # Add public key for netbird
         echo "Adding Netbird public key..."
-        curl -sSL https://pkgs.netbird.io/debian/public.key | sudo gpg --dearmor -o /usr/share/keyrings/netbird-archive-keyring.gpg
+        curl -sSL https://pkgs.netbird.io/debian/public.key | $SUDO gpg --dearmor -o /usr/share/keyrings/netbird-archive-keyring.gpg
 
         # Add netbird repository
         echo "Adding Netbird repository..."
-        echo "deb [signed-by=/usr/share/keyrings/netbird-archive-keyring.gpg] https://pkgs.netbird.io/debian stable main" | sudo tee /etc/apt/sources.list.d/netbird.list > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/netbird-archive-keyring.gpg] https://pkgs.netbird.io/debian stable main" | $SUDO tee /etc/apt/sources.list.d/netbird.list > /dev/null
 
         # Install netbird
         echo "Installing Netbird package..."
-        sudo apt update
-        sudo apt install -y netbird
+        $SUDO apt update
+        $SUDO apt install -y netbird
 
         echo -e "${GREEN}Netbird installed successfully!${NC}"
         echo ""
@@ -166,7 +173,7 @@ function setup_netbird {
 
     # Configure and start netbird
     echo "Configuring Netbird..."
-    sudo netbird up --setup-key "$netbird_setup_key" --management-url "$netbird_url" --hostname "edge-${site_id}-${instance_id}"
+    $SUDO netbird up --setup-key "$netbird_setup_key" --management-url "$netbird_url" --hostname "edge-${site_id}-${instance_id}"
 
     # Wait for netbird to connect
     echo "Waiting for Netbird to connect..."
@@ -199,7 +206,7 @@ function run_option {
             ;;
         3)
             echo "Setting timezone to Europe/Sofia"
-            sudo timedatectl set-timezone Europe/Sofia
+            $SUDO timedatectl set-timezone Europe/Sofia
             echo ""
             echo -e "${GREEN}Timezone set successfully!${NC}"
             read -n 1 -s -r -p "Press any key to continue..."
