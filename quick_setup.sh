@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script version
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 # Refresh interval for live stats (in seconds)
 REFRESH_INTERVAL=5
