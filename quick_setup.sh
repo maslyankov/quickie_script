@@ -48,6 +48,25 @@ function get_system_info {
     # Disk usage (root partition)
     disk_usage=$(df -h / 2>/dev/null | awk 'NR==2{print $5 " (" $3 "/" $2 ")"}')
     [ -z "$disk_usage" ] && disk_usage="N/A"
+
+    # Netbird status
+    if ! command -v netbird &> /dev/null; then
+        netbird_status="Not installed"
+        netbird_status_color="${RED}"
+    else
+        netbird_state=$(netbird status 2>/dev/null | grep -oP 'Status: \K\w+' | head -1)
+        if [ "$netbird_state" = "Connected" ]; then
+            netbird_ip_addr=$(netbird status 2>/dev/null | grep 'NetBird IP' | sed 's/NetBird IP: //' | sed 's#/.*##')
+            netbird_status="Running (${netbird_ip_addr})"
+            netbird_status_color="${GREEN}"
+        elif [ -n "$netbird_state" ]; then
+            netbird_status="Not running"
+            netbird_status_color="${YELLOW}"
+        else
+            netbird_status="Not running"
+            netbird_status_color="${YELLOW}"
+        fi
+    fi
 }
 
 # Function to display header with system info
@@ -66,6 +85,8 @@ function show_header {
     echo -e "${BOLD}${CYAN}║${NC}  ${BLUE}Memory:${NC}     ${YELLOW}${mem_info}${NC}"
     echo -e "${BOLD}${CYAN}║${NC}  ${BLUE}CPU Temp:${NC}   ${YELLOW}${cpu_temp}${NC}"
     echo -e "${BOLD}${CYAN}║${NC}  ${BLUE}Disk (/):${NC}   ${YELLOW}${disk_usage}${NC}"
+    echo -e "${BOLD}${CYAN}╠════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BLUE}Netbird:${NC}    ${netbird_status_color}${netbird_status}${NC}"
     echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -85,28 +106,54 @@ function show_menu {
 
 # Function to install and setup Netbird
 function setup_netbird {
-    echo "Installing Netbird..."
-    
-    # Install dependencies
-    echo "Installing dependencies..."
-    sudo apt update
-    sudo apt install -y ca-certificates curl gnupg
+    # Check if netbird is already installed
+    if command -v netbird &> /dev/null; then
+        netbird_state=$(netbird status 2>/dev/null | grep -oP 'Status: \K\w+' | head -1)
+        if [ "$netbird_state" = "Connected" ]; then
+            netbird_ip_addr=$(netbird status 2>/dev/null | grep 'NetBird IP' | sed 's/NetBird IP: //' | sed 's#/.*##')
+            echo ""
+            echo -e "${GREEN}════════════════════════════════════════${NC}"
+            echo -e "${GREEN}Netbird is already installed and running${NC}"
+            echo -e "${GREEN}Netbird IP: ${BOLD}${netbird_ip_addr}${NC}"
+            echo -e "${GREEN}════════════════════════════════════════${NC}"
+            echo ""
+            read -n 1 -s -r -p "Press any key to continue..."
+            return
+        else
+            echo ""
+            echo -e "${YELLOW}Netbird is installed but not running.${NC}"
+            read -p "Do you want to configure and start it? (Y/n) " start_netbird
+            start_netbird=${start_netbird:-Y}
+            if [[ ! "$start_netbird" =~ ^[Yy]$ ]]; then
+                return
+            fi
+            # Skip installation, go to configuration
+            echo ""
+        fi
+    else
+        echo "Installing Netbird..."
+        
+        # Install dependencies
+        echo "Installing dependencies..."
+        sudo apt update
+        sudo apt install -y ca-certificates curl gnupg
 
-    # Add public key for netbird
-    echo "Adding Netbird public key..."
-    curl -sSL https://pkgs.netbird.io/debian/public.key | sudo gpg --dearmor -o /usr/share/keyrings/netbird-archive-keyring.gpg
+        # Add public key for netbird
+        echo "Adding Netbird public key..."
+        curl -sSL https://pkgs.netbird.io/debian/public.key | sudo gpg --dearmor -o /usr/share/keyrings/netbird-archive-keyring.gpg
 
-    # Add netbird repository
-    echo "Adding Netbird repository..."
-    echo "deb [signed-by=/usr/share/keyrings/netbird-archive-keyring.gpg] https://pkgs.netbird.io/debian stable main" | sudo tee /etc/apt/sources.list.d/netbird.list > /dev/null
+        # Add netbird repository
+        echo "Adding Netbird repository..."
+        echo "deb [signed-by=/usr/share/keyrings/netbird-archive-keyring.gpg] https://pkgs.netbird.io/debian stable main" | sudo tee /etc/apt/sources.list.d/netbird.list > /dev/null
 
-    # Install netbird
-    echo "Installing Netbird package..."
-    sudo apt update
-    sudo apt install -y netbird
+        # Install netbird
+        echo "Installing Netbird package..."
+        sudo apt update
+        sudo apt install -y netbird
 
-    echo "Netbird installed successfully!"
-    echo ""
+        echo -e "${GREEN}Netbird installed successfully!${NC}"
+        echo ""
+    fi
 
     # Get configuration from user
     read -p "Enter Netbird Setup Key: " netbird_setup_key
@@ -125,9 +172,12 @@ function setup_netbird {
     # Get and display Netbird IP
     netbird_ip=$(netbird status | grep 'NetBird IP' | sed 's/NetBird IP: //' | sed 's#/16##')
     echo ""
-    echo "================================"
-    echo "Netbird IP: $netbird_ip"
-    echo "================================"
+    echo -e "${GREEN}════════════════════════════════════════${NC}"
+    echo -e "${GREEN}Netbird configured successfully!${NC}"
+    echo -e "${GREEN}Netbird IP: ${BOLD}${netbird_ip}${NC}"
+    echo -e "${GREEN}════════════════════════════════════════${NC}"
+    echo ""
+    read -n 1 -s -r -p "Press any key to continue..."
 }
 
 # Function to read user input and execute the corresponding script
