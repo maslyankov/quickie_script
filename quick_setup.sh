@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Script version
+VERSION="1.0.0"
+
 # Colors for better visibility
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -75,7 +78,7 @@ function show_header {
     
     clear
     echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}              ${BOLD}${YELLOW}⚡ QUICK SETUP SCRIPT ⚡${NC}              ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}        ${BOLD}${YELLOW}⚡ QUICK SETUP SCRIPT ⚡${NC}  ${CYAN}v${VERSION}${NC}           ${BOLD}${CYAN}║${NC}"
     echo -e "${BOLD}${CYAN}╠════════════════════════════════════════════════════════════╣${NC}"
     echo -e "${BOLD}${CYAN}║${NC}  ${BLUE}User:${NC}       ${GREEN}${current_user}${NC}"
     echo -e "${BOLD}${CYAN}║${NC}  ${BLUE}Local IP:${NC}   ${GREEN}${local_ip}${NC}"
