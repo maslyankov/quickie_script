@@ -189,7 +189,7 @@ function run_option {
     case $choice in
         1) 
             echo "Running the admin user setup script..."
-            bash <(curl -s -L https://gist.github.com/maslyankov/75fec45087eddcb09b9527a915905045/raw/502f11fe3da8280e8645c4c61e543c6814f068a4/create_admin_user.sh)
+            bash <(curl -s -L https://github.com/maslyankov/quickie_script/raw/refs/heads/main/create_admin_user.sh)
             read -n 1 -s -r -p "Press any key to continue..."
             ;;
         2) 
