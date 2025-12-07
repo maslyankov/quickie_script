@@ -3,6 +3,9 @@
 # Script version
 VERSION="1.0.0"
 
+# Refresh interval for live stats (in seconds)
+REFRESH_INTERVAL=5
+
 # Colors for better visibility
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -57,14 +60,11 @@ function get_system_info {
         netbird_status="Not installed"
         netbird_status_color="${RED}"
     else
-        netbird_state=$(netbird status 2>/dev/null | grep -oP 'Status: \K\w+' | head -1)
-        if [ "$netbird_state" = "Connected" ]; then
-            netbird_ip_addr=$(netbird status 2>/dev/null | grep 'NetBird IP' | sed 's/NetBird IP: //' | sed 's#/.*##')
+        # Check if netbird is connected (look for "Connected" in status output)
+        if netbird status 2>/dev/null | grep -qi "connected"; then
+            netbird_ip_addr=$(netbird status 2>/dev/null | grep -i 'NetBird IP' | sed 's/.*: //' | sed 's#/.*##' | tr -d ' ')
             netbird_status="Running (${netbird_ip_addr})"
             netbird_status_color="${GREEN}"
-        elif [ -n "$netbird_state" ]; then
-            netbird_status="Not running"
-            netbird_status_color="${YELLOW}"
         else
             netbird_status="Not running"
             netbird_status_color="${YELLOW}"
@@ -111,9 +111,9 @@ function show_menu {
 function setup_netbird {
     # Check if netbird is already installed
     if command -v netbird &> /dev/null; then
-        netbird_state=$(netbird status 2>/dev/null | grep -oP 'Status: \K\w+' | head -1)
-        if [ "$netbird_state" = "Connected" ]; then
-            netbird_ip_addr=$(netbird status 2>/dev/null | grep 'NetBird IP' | sed 's/NetBird IP: //' | sed 's#/.*##')
+        # Check if netbird is connected
+        if netbird status 2>/dev/null | grep -qi "connected"; then
+            netbird_ip_addr=$(netbird status 2>/dev/null | grep -i 'NetBird IP' | sed 's/.*: //' | sed 's#/.*##' | tr -d ' ')
             echo ""
             echo -e "${GREEN}════════════════════════════════════════${NC}"
             echo -e "${GREEN}Netbird is already installed and running${NC}"
@@ -183,33 +183,49 @@ function setup_netbird {
     read -n 1 -s -r -p "Press any key to continue..."
 }
 
-# Function to read user input and execute the corresponding script
-function read_and_run {
-    read -p "Enter your choice [ 1 - 5 ] " choice
+# Function to execute the selected option
+function run_option {
+    local choice=$1
     case $choice in
         1) 
             echo "Running the admin user setup script..."
             bash <(curl -s -L https://gist.github.com/maslyankov/75fec45087eddcb09b9527a915905045/raw/502f11fe3da8280e8645c4c61e543c6814f068a4/create_admin_user.sh)
+            read -n 1 -s -r -p "Press any key to continue..."
             ;;
         2) 
             echo "Running the Docker setup script..."
             bash <(curl -s -L https://gist.github.com/maslyankov/b1078c8d1143584ad1f3201f73632dcf/raw/2b19d1c55810a970bb28daeaeba84678c620c2a2/setup_docker_and_compose2.sh)
+            read -n 1 -s -r -p "Press any key to continue..."
             ;;
         3)
             echo "Setting timezone to Europe/Sofia"
             sudo timedatectl set-timezone Europe/Sofia
+            echo ""
+            echo -e "${GREEN}Timezone set successfully!${NC}"
+            read -n 1 -s -r -p "Press any key to continue..."
             ;;
         4)
             setup_netbird
             ;;
         5) exit 0;;
-        *) echo "Invalid option.";;
+        *) 
+            # Invalid option, just refresh
+            ;;
     esac
 }
 
-# Main loop
+# Main loop with live refresh
 while true
 do
     show_menu
-    read_and_run
+    echo -e "${CYAN}(Auto-refresh every ${REFRESH_INTERVAL}s)${NC}"
+    
+    # Read with timeout for auto-refresh
+    if read -t $REFRESH_INTERVAL -p "Enter your choice [ 1 - 5 ] " choice; then
+        # User entered something
+        if [ -n "$choice" ]; then
+            run_option "$choice"
+        fi
+    fi
+    # If timeout or empty input, loop continues and refreshes the menu
 done
